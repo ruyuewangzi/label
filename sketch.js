@@ -1,3 +1,64 @@
+let helplineRenderer = new airglass.Renderer(
+  document.querySelector('#helplineRenderer').getContext('2d'),
+  new airglass.Scene()
+);
+
+helplineRenderer.scene.add(new airglass.Ellipse({
+  x: 12,
+  y: 12,
+  width: 10,
+  height: 10,
+  lineWidth: 4,
+  strokeStyle: '#fff',
+  fillStyle: 'hsl(300, 100%, 50%)',
+}))
+helplineRenderer.scene.add(new airglass.Ellipse({
+  x: 32,
+  y: 12,
+  width: 10,
+  height: 10,
+  lineWidth: 4,
+  strokeStyle: '#fff',
+  fillStyle: 'hsl(40, 100%, 50%)',
+}))
+helplineRenderer.scene.add(new airglass.Ellipse({
+  x: 52,
+  y: 12,
+  width: 10,
+  height: 10,
+  lineWidth: 4,
+  strokeStyle: '#fff',
+  fillStyle: 'hsl(60, 100%, 50%)',
+}))
+helplineRenderer.scene.add(new airglass.Ellipse({
+  x: 72,
+  y: 12,
+  width: 10,
+  height: 10,
+  lineWidth: 4,
+  strokeStyle: '#fff',
+  fillStyle: 'hsl(100, 100%, 50%)',
+}))
+helplineRenderer.scene.add(new airglass.Ellipse({
+  x: 92,
+  y: 12,
+  width: 10,
+  height: 10,
+  lineWidth: 4,
+  strokeStyle: '#fff',
+  fillStyle: 'hsl(180, 100%, 50%)',
+}))
+helplineRenderer.scene.add(new airglass.Ellipse({
+  x: 112,
+  y: 12,
+  width: 10,
+  height: 10,
+  lineWidth: 4,
+  strokeStyle: '#fff',
+  fillStyle: 'hsl(250, 100%, 50%)',
+}))
+helplineRenderer.render();
+
 let polygonRenderer = new airglass.Renderer(
   document.querySelector('#polygonRenderer').getContext('2d'),
   new airglass.Scene()
@@ -24,6 +85,10 @@ let lastEventPosition;
 let lastTouchstartPosition;
 // 为了让拖拽控制点看起来不抖动，需要记录控制点touchstart时的位置
 let activeControllerPointPositionWhenTouchstart;
+// 是否正在绘制多边形
+let isDrawingPolygon = false;
+// 当前颜色
+let currentColor = 'hsl(0, 0%, 100%)';
 
 // controller拖拽控制点
 controllerRenderer.subscribe(controllerRenderer, subscribeEvent);
@@ -35,12 +100,37 @@ function subscribeEvent(actor) {
 
   let controllersContainPoint = controllerRenderer.getElementsContainPoint(event);
   let polygonsContainPoint = polygonRenderer.getElementsContainPoint(event);
+  let colorsContainPoint = helplineRenderer.getElementsContainPoint(event);
+
+  if (type == 'mousemove') {
+    mousemove: {
+      if (!lastEventPosition || !lastEventPosition[0] || !lastEventPosition[1]) {
+        break mousemove;
+      }
+
+      // 移除重复的拖拽事件
+      if (lastEventPosition[0] == event.x && lastEventPosition[1] == event.y) {
+        break mousemove;
+      }
+
+      // 正在绘制多边形
+      if (isDrawingPolygon) {
+
+      }
+    }
+  }
 
   if (type == 'touchstart') {
     touchstart: {
       lastTouchstartPosition = [event.x, event.y];
       // 初始化上次事件位置
       !lastEventPosition && (lastEventPosition = [event.x, event.y]);
+
+      if (colorsContainPoint.length) {
+        let color = colorsContainPoint[colorsContainPoint.length - 1];
+        currentColor = color.fillStyle
+        break touchstart;
+      }
 
       // 落在任意控制点上
       if (controllersContainPoint.length) {
@@ -50,10 +140,13 @@ function subscribeEvent(actor) {
         activeControllerPointPositionWhenTouchstart = [activeControllerPoint.x, activeControllerPoint.y];
         // 当前正在绘制多边形，还没有闭合多边形
         if (currentPolygon) {
+          activePolygon = null;
           // 如果该控制点就是当前正在绘制的polygon的第一个控制点
           if (activeControllerPoint === currentPolygon.points[0]) {
             // 只执行一次
             if (actor === controllerRenderer) {
+              // 正在绘制多边形的状态设置为false
+              isDrawingPolygon = false;
               // 从外观上将多边形闭合
               currentPolygon.addPoint(currentPolygon.points[0]);
               // 设置一个标志，说明多边形已经闭合
@@ -76,7 +169,6 @@ function subscribeEvent(actor) {
       if (polygonsContainPoint.length) {
         // 第一个击中的多边形
         _activePolygon = polygonsContainPoint[polygonsContainPoint.length - 1];
-        console.log(_activePolygon)
 
         // 将这个多边形置于渲染器的最顶层
         polygonRenderer.scene.children.forEach((child, i) => {
@@ -89,10 +181,14 @@ function subscribeEvent(actor) {
             if (_activePolygon.__isPathClosed) {
               activePolygon = _activePolygon;
               currentPolygon = null;
+              // 当前没有绘制多边形
+              isDrawingPolygon = false;
             } else {
               // 击中的多边形未闭合，即未完成了绘制
               currentPolygon = _activePolygon;
               activePolygon = null;
+              // 当前在绘制多边形
+              isDrawingPolygon = true;
             }
             controllerRenderer.scene.children = _activePolygon.points;
           }
@@ -106,12 +202,19 @@ function subscribeEvent(actor) {
       // 既没有落在控制点 && 也没有落在多边形上
 
       // 激活中的控制点 = 新创建的控制点
-      activeControllerPoint = new airglass.Ellipse({
-        x: event.x,
-        y: event.y,
-        width: 10,
-        height: 10,
-      })
+      {
+        // let _fillStyle = currentColor.split('');
+        // _fillStyle.splice(_fillStyle.length - 1, 0, ', 0.5');
+        // _fillStyle.splice(3, 0, 'a');
+
+        activeControllerPoint = new airglass.Ellipse({
+          x: event.x,
+          y: event.y,
+          width: 10,
+          height: 10,
+          fillStyle: 'transparent',
+        })
+      }
 
       // 如果存在当前正在绘制的
       if (currentPolygon) {
@@ -124,11 +227,25 @@ function subscribeEvent(actor) {
         controllerRenderer.scene.children = currentGroupPoints;
       }
 
+      if (currentGroupPoints.length == 1) {
+        isDrawingPolygon = true;
+        currentGroupPoints[0].set({
+          fillStyle: currentColor,
+          lineWidth: 4,
+        })
+      }
+
       // 已经创建了第3个控制点
       if (currentGroupPoints.length == 3) {
         // 当前正在绘制的多边形 = 新创建的多边形
+        let _fillStyle = currentColor.split('');
+        _fillStyle.splice(_fillStyle.length - 1, 0, ', 0.5');
+        _fillStyle.splice(3, 0, 'a');
+
         currentPolygon = new airglass.Polygon({
           points: currentGroupPoints,
+          fillStyle: _fillStyle.join(''),
+          strokeStyle: currentColor,
         });
         // 清空临时控制点组
         currentGroupPoints = [];
@@ -141,7 +258,6 @@ function subscribeEvent(actor) {
       polygonRenderer.render();
     }
   }
-
 
   if (type == 'touchmove') {
     touchmove: {
@@ -188,22 +304,6 @@ function subscribeEvent(actor) {
           controllerRenderer.render();
           _needUpdatePolygon.updatePath();
           polygonRenderer.render();
-        }
-      }
-
-      break touchmove;
-
-      // 拖动激活中的控制点
-      if (actor === controllerRenderer) {
-        // 移动激活中的polygon
-        if (activePolygon) {
-          // 击中的多边形
-          if (polygonsContainPoint.length) {
-            let polygon = polygonsContainPoint[polygonsContainPoint.length - 1];
-            if (activePolygon == polygon) {
-
-            }
-          }
         }
       }
     }
