@@ -1,63 +1,12 @@
-let helplineRenderer = new airglass.Renderer(
-  document.querySelector('#helplineRenderer').getContext('2d'),
+let imageRenderer = new airglass.Renderer(
+  document.querySelector('#imageRenderer').getContext('2d'),
   new airglass.Scene()
 );
 
-helplineRenderer.scene.add(new airglass.Ellipse({
-  x: 12,
-  y: 12,
-  width: 10,
-  height: 10,
-  lineWidth: 4,
-  strokeStyle: '#fff',
-  fillStyle: 'hsl(300, 100%, 50%)',
-}))
-helplineRenderer.scene.add(new airglass.Ellipse({
-  x: 32,
-  y: 12,
-  width: 10,
-  height: 10,
-  lineWidth: 4,
-  strokeStyle: '#fff',
-  fillStyle: 'hsl(40, 100%, 50%)',
-}))
-helplineRenderer.scene.add(new airglass.Ellipse({
-  x: 52,
-  y: 12,
-  width: 10,
-  height: 10,
-  lineWidth: 4,
-  strokeStyle: '#fff',
-  fillStyle: 'hsl(60, 100%, 50%)',
-}))
-helplineRenderer.scene.add(new airglass.Ellipse({
-  x: 72,
-  y: 12,
-  width: 10,
-  height: 10,
-  lineWidth: 4,
-  strokeStyle: '#fff',
-  fillStyle: 'hsl(100, 100%, 50%)',
-}))
-helplineRenderer.scene.add(new airglass.Ellipse({
-  x: 92,
-  y: 12,
-  width: 10,
-  height: 10,
-  lineWidth: 4,
-  strokeStyle: '#fff',
-  fillStyle: 'hsl(180, 100%, 50%)',
-}))
-helplineRenderer.scene.add(new airglass.Ellipse({
-  x: 112,
-  y: 12,
-  width: 10,
-  height: 10,
-  lineWidth: 4,
-  strokeStyle: '#fff',
-  fillStyle: 'hsl(250, 100%, 50%)',
-}))
-helplineRenderer.render();
+let borderRenderer = new airglass.Renderer(
+  document.querySelector('#borderRenderer').getContext('2d'),
+  new airglass.Scene()
+);
 
 let polygonRenderer = new airglass.Renderer(
   document.querySelector('#polygonRenderer').getContext('2d'),
@@ -88,7 +37,7 @@ let activeControllerPointPositionWhenTouchstart;
 // 是否正在绘制多边形
 let isDrawingPolygon = false;
 // 当前颜色
-let currentColor = 'hsl(0, 0%, 100%)';
+let currentColor = 'hsl(60, 100%, 50%)';
 
 // controller拖拽控制点
 controllerRenderer.subscribe(controllerRenderer, subscribeEvent);
@@ -100,7 +49,6 @@ function subscribeEvent(actor) {
 
   let controllersContainPoint = controllerRenderer.getElementsContainPoint(event);
   let polygonsContainPoint = polygonRenderer.getElementsContainPoint(event);
-  let colorsContainPoint = helplineRenderer.getElementsContainPoint(event);
 
   if (type == 'mousemove') {
     mousemove: {
@@ -125,12 +73,6 @@ function subscribeEvent(actor) {
       lastTouchstartPosition = [event.x, event.y];
       // 初始化上次事件位置
       !lastEventPosition && (lastEventPosition = [event.x, event.y]);
-
-      if (colorsContainPoint.length) {
-        let color = colorsContainPoint[colorsContainPoint.length - 1];
-        currentColor = color.fillStyle
-        break touchstart;
-      }
 
       // 落在任意控制点上
       if (controllersContainPoint.length) {
@@ -202,19 +144,14 @@ function subscribeEvent(actor) {
       // 既没有落在控制点 && 也没有落在多边形上
 
       // 激活中的控制点 = 新创建的控制点
-      {
-        // let _fillStyle = currentColor.split('');
-        // _fillStyle.splice(_fillStyle.length - 1, 0, ', 0.5');
-        // _fillStyle.splice(3, 0, 'a');
-
-        activeControllerPoint = new airglass.Ellipse({
-          x: event.x,
-          y: event.y,
-          width: 10,
-          height: 10,
-          fillStyle: 'transparent',
-        })
-      }
+      activeControllerPoint = new airglass.Ellipse({
+        x: event.x,
+        y: event.y,
+        width: 6,
+        height: 6,
+        fillStyle: 'transparent',
+        strokeStyle: currentColor,
+      })
 
       // 如果存在当前正在绘制的
       if (currentPolygon) {
@@ -239,13 +176,14 @@ function subscribeEvent(actor) {
       if (currentGroupPoints.length == 3) {
         // 当前正在绘制的多边形 = 新创建的多边形
         let _fillStyle = currentColor.split('');
-        _fillStyle.splice(_fillStyle.length - 1, 0, ', 0.5');
+        _fillStyle.splice(_fillStyle.length - 1, 0, ', 0.2');
         _fillStyle.splice(3, 0, 'a');
 
         currentPolygon = new airglass.Polygon({
           points: currentGroupPoints,
           fillStyle: _fillStyle.join(''),
           strokeStyle: currentColor,
+          lineWidth: 1,
         });
         // 清空临时控制点组
         currentGroupPoints = [];
@@ -317,4 +255,77 @@ function subscribeEvent(actor) {
   }
 
   lastEventPosition = [event.x, event.y];
+}
+
+document.querySelector('#exportLabel').addEventListener('click', exportLabel);
+
+// 导出标注数据
+function exportLabel() {
+  let polygons = polygonRenderer.scene.children.map(polygon => {
+    return {
+      x: polygon.x,
+      y: polygon.y,
+      width: polygon.width,
+      height: polygon.height,
+      points: polygon.points.map(point => [point.x, point.y]),
+    }
+  })
+  console.log(JSON.stringify(polygons, null, 2))
+}
+
+// 导入标注数据
+function importLabel() {
+
+}
+
+// 设置大小
+loadImage('img1.jpg');
+
+function loadImage(src) {
+  let img = new Image;
+  img.src = src;
+  img.onload = function() {
+    let maxWidth = 300;
+    let ratio = img.width / img.height;
+    let width = img.width > maxWidth ? maxWidth : img.width;
+    let height = width == img.width ? height : width / ratio;
+    setSize(width, height);
+    imageRenderer.ctx.drawImage(img, 0, 0, width, height);
+  }
+}
+
+function setSize(width, height) {
+  document.querySelector('#wrap').style = `width:${width}px;height:${height}px;`;
+  document.querySelector('#imageRenderer').style = `width:${width}px;height:${height}px;`;
+  document.querySelector('#polygonRenderer').style = `width:${width}px;height:${height}px;`;
+  document.querySelector('#borderRenderer').style = `width:${width}px;height:${height}px;`;
+  document.querySelector('#controllerRenderer').style = `width:${width}px;height:${height}px;`;
+
+  document.querySelector('#imageRenderer').width = document.querySelector('#polygonRenderer').width = document.querySelector('#controllerRenderer').width = document.querySelector('#borderRenderer').width = width;
+  document.querySelector('#imageRenderer').height = document.querySelector('#polygonRenderer').height = document.querySelector('#controllerRenderer').height = document.querySelector('#borderRenderer').height = height;
+}
+
+document.querySelector('#previewLabel').addEventListener('click', preview);
+
+function preview() {
+  polygonRenderer.clean();
+  controllerRenderer.clean();
+  polygonRenderer.scene.children.forEach(polygon => {
+    let path = new Path2D();
+    path.rect(polygon.minX, polygon.minY, polygon.width, polygon.height)
+    borderRenderer.ctx.strokeStyle = polygon.strokeStyle;
+    borderRenderer.ctx.lineWidth = 4;
+    borderRenderer.ctx.stroke(path);
+
+    path = new Path2D();
+    path.rect(polygon.minX, polygon.minY - 20, 30, 20);
+    borderRenderer.ctx.fillStyle = polygon.strokeStyle;
+    borderRenderer.ctx.fill(path);
+    borderRenderer.ctx.stroke(path);
+
+    borderRenderer.ctx.fillStyle = '#333';
+    borderRenderer.ctx.font = 'normal 18px "微软雅黑"';
+    borderRenderer.ctx.baseLine = 'bottom';
+    borderRenderer.ctx.fillText('云', polygon.minX + 4, polygon.minY - 4);
+  })
 }

@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <title></title>
+    <style>
+      body {
+        background-color: #fff;
+        margin: 20px;
+      }
+      #wrap {
+        position: relative;
+        background-color: #008eff;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      #wrap canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wrap" style="">
+      <canvas id="imageRenderer"></canvas>
+      <canvas id="polygonRenderer"></canvas>
+      <canvas id="borderRenderer"></canvas>
+      <canvas id="controllerRenderer"></canvas>
+    </div>
+    <div id="info"></div>
+    <button id="exportLabel">导出数据</button>
+    <button id="importLabel">导入数据</button>
+    <button id="previewLabel">预览识别</button>
+    <script src="../airglass.js"></script>
+    <script src="sketch.js"></script>
+  </body>
+</html>
